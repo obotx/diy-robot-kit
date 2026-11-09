@@ -5,16 +5,38 @@ Z axes, a horizontal X axis and a four-finger electric gripper.
 
 This repository contains the bill of materials, electrical diagram, firmware
 and Raspberry Pi control software required to reproduce and commission the
-robot. The customer's external control software is not included.
+robot.
 
 <p align="center">
   <img src="media/obotx-robot.jpg" alt="ObotX mobile manipulator" width="48%">
-  <img src="media/obotx-robot-extended.jpg" alt="ObotX with the arm extended" width="48%">
+  <img src="media/obotx-robot-extended.jpg" alt="ObotX manipulator extended" width="48%">
 </p>
 
-<p align="center">
-  <a href="media/obotx-demo.mp4"><strong>Watch the ObotX demonstration video</strong></a>
-</p>
+### Demonstration video
+
+The following video shows the assembled ObotX robot in operation.
+
+https://github.com/user-attachments/assets/15b41a1a-71f6-4121-ad5b-7e64adb0d48f
+
+## Teleoperation system
+
+The complete ObotX teleoperation system consists of two parts:
+
+| Component | Role |
+| --- | --- |
+| **Device** | The physical ObotX robot, including the mecanum base, manipulator, gripper, cameras, Raspberry Pi and STM32 controllers. |
+| **Teleoperation interface** | The browser-based operator panel served by the Raspberry Pi. It sends commands to the Device and displays robot status and camera video. |
+
+```text
+Operator -> Browser interface -> Wi-Fi / Ethernet -> ObotX Device
+```
+
+The Raspberry Pi web server and teleoperation interface are included in this
+repository under [`software/rpi`](software/rpi/).
+
+### Teleoperation interface
+
+![ObotX browser-based teleoperation interface](media/obotx-teleoperation-interface.png)
 
 ## Build and commissioning order
 
