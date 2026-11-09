@@ -1,0 +1,45 @@
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build outputs
+build/
+dist/
+out/
+
+# Logs and local runtime files
+*.log
+*.tmp
+.env
+
+# Local/internal project material
+.agents/
+**/AGENTS.md
+output/
+tmp/
+docs/contracts/
+docs/internal/
+docs/releases/
+internal/
+private/
+docs/commercial/
+hardware/bom/*ledger*.csv
+hardware/bom/purchase-tracking*.md
+
+# IDE workspaces and user-specific launch state
+**/workspace-headless/
+**/*.launch
+
+# CAD/tool temporary files
+*.bak
+*.swp
+~$*
+
+# Keep source analysis files explicit; do not ignore PDFs/XLSX globally.

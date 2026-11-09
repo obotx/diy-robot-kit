@@ -1,0 +1,20 @@
+[Unit]
+Description=ObotX Raspberry Pi Control Server
+After=network-online.target bluetooth.service
+Wants=network-online.target bluetooth.service
+
+[Service]
+Type=simple
+User=obotx
+WorkingDirectory=/home/obotx/ObotX/software/rpi
+Environment=OBOTX_HARDWARE=mock
+Environment=OBOTX_ACTIVE_HIGH=true
+Environment=OBOTX_ROBOT_BACKEND=stm32-auto
+EnvironmentFile=-/etc/obotx-rpi-control.env
+EnvironmentFile=-/etc/obotx-rpi-control-mode.env
+ExecStart=/home/obotx/ObotX/software/rpi/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

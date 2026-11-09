@@ -1,0 +1,14 @@
+[Unit]
+Description=Enable Bluetooth radio for ObotX SmartShunt monitoring
+Wants=bluetooth.service
+After=bluetooth.service
+Before=obotx-rpi-control.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env rfkill unblock bluetooth
+ExecStart=/usr/bin/bluetoothctl power on
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+fastapi==0.114.2
+uvicorn[standard]==0.30.6
+gpiozero==2.0.1
+pydantic==2.13.5
+pyserial==3.5
+victron-ble==0.9.3
+bleak==3.0.2

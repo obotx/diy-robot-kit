@@ -1,0 +1,4 @@
+{
+  "port": "/dev/serial/by-id/REPLACE_WITH_ZL_STLINK_PORT",
+  "standalone_confirmed": false
+}

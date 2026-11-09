@@ -1,0 +1,6 @@
+{
+  "arm": {"port": "socket://127.0.0.1:9101", "device_id": "EMULATOR-ARM"},
+  "base": {"port": "socket://127.0.0.1:9102", "device_id": "EMULATOR-BASE"},
+  "commissioned": true,
+  "max_z_difference_mm": 100.0
+}

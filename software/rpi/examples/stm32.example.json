@@ -1,0 +1,7 @@
+{
+  "arm": {"port": "/dev/serial/by-id/REPLACE_WITH_ARM_USB_ID", "device_id": "REPLACE_WITH_ARM_MCU_ID"},
+  "base": {"port": "/dev/serial/by-id/REPLACE_WITH_BASE_USB_ID", "device_id": "REPLACE_WITH_BASE_MCU_ID"},
+  "baudrate": 115200,
+  "commissioned": false,
+  "max_z_difference_mm": null
+}

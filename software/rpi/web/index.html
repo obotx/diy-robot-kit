@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ObotX | Operator station</title>
+    <link rel="icon" href="/static/robot-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/styles.css?v=0.9.10" />
+    <script src="/static/vendor/lucide.min.js" defer></script>
+    <script src="/static/app.js?v=0.9.28" defer></script>
+    <script src="/static/battery.js?v=0.9.7" defer></script>
+    <script src="/static/service.js?v=0.9.11" defer></script>
+    <script src="/static/wheel-test.js?v=0.9.17" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="/static/robot-mark.svg" alt="" width="36" height="36" />
+        <div>
+          <h1>ObotX</h1>
+          <span>Operator station</span>
+        </div>
+      </div>
+      <div class="connection-strip">
+        <span class="badge simulation"
+          ><i data-lucide="cpu"></i> <span id="backend-label">CONNECTING</span></span
+        ><span id="connection" class="connection"
+          ><span class="dot"></span
+          ><span id="connection-text">Connecting...</span></span
+        >
+      </div>
+      <div class="header-actions">
+        <button
+          class="icon-button"
+          id="api-open"
+          title="PC application interface"
+          aria-label="PC application interface"
+        >
+          <i data-lucide="terminal"></i></button
+        ><button class="stop-button" id="stop">
+          <i data-lucide="octagon-x"></i> STOP <kbd>Space</kbd>
+        </button>
+      </div>
+    </header>
+    <main class="workspace">
+      <section class="battery-strip" aria-label="Battery monitor">
+        <i data-lucide="battery-medium" aria-hidden="true"></i>
+        <strong>Battery <output id="battery-soc">--%</output></strong>
+        <meter id="battery-gauge" min="0" max="100" value="0" aria-label="Battery charge" hidden></meter>
+        <span id="battery-electrical"></span>
+        <span id="battery-runtime" title="SmartShunt time-to-go estimate">Remaining: --</span>
+        <span id="battery-status">SmartShunt: connecting...</span>
+      </section>
+      <div id="battery-alert" class="battery-alert" role="alert" hidden></div>
+      <div class="session-bar">
+        <div>
+          <span class="section-kicker">CONTROL</span
+          ><strong id="control-status" aria-live="polite">Disconnected</strong
+          ><span id="control-source">Robot not connected</span>
+        </div>
+        <div class="session-actions">
+          <span id="homing-status" aria-live="polite">ZL not referenced</span>
+          <button id="home-zl" disabled><i data-lucide="locate-fixed"></i> Home robot</button>
+          <label class="enable-control"
+            ><input id="enable" type="checkbox" disabled /><span
+              class="switch"
+              aria-hidden="true"
+            ></span
+            ><span>Take control</span></label
+          >
+        </div>
+      </div>
+      <div class="service-toolbar">
+        <label class="enable-control"><input id="service-toggle" type="checkbox" disabled /><span class="switch" aria-hidden="true"></span><span>Service mode</span></label>
+        <output id="service-limits"></output>
+      </div>
+      <div id="service-warning" role="alert" hidden>Service mode: limit switches and position protection bypassed. Position is not referenced.</div>
+      <details class="controller-details">
+        <summary>STM32 connections</summary>
+        <dl><dt>ARM</dt><dd id="arm-link-detail">Not connected</dd>
+          <dt>Platform</dt><dd id="base-link-detail">Not connected</dd></dl>
+      </details>
+      <section id="wheel-test-panel" class="panel" hidden aria-label="Individual wheel test">
+        <h2>Wheel test</h2>
+        <label>PWM <select id="wheel-test-duty"><option value="0.05">5%</option><option value="0.10" selected>10%</option><option value="0.15">15%</option></select></label>
+        <div class="service-toolbar">
+          <button type="button" data-wheel="FL" data-direction="1">FL +</button>
+          <button type="button" data-wheel="FL" data-direction="-1">FL −</button>
+          <button type="button" data-wheel="FR" data-direction="1">FR +</button>
+          <button type="button" data-wheel="FR" data-direction="-1">FR −</button>
+          <button type="button" data-wheel="RL" data-direction="1">RL +</button>
+          <button type="button" data-wheel="RL" data-direction="-1">RL −</button>
+          <button type="button" data-wheel="RR" data-direction="1">RR +</button>
+          <button type="button" data-wheel="RR" data-direction="-1">RR −</button>
+          <button type="button" id="wheel-test-stop"><i data-lucide="square"></i> Stop wheels</button>
+        </div>
+        <p id="wheel-test-status" role="status"></p>
+        <output id="wheel-test-counts"></output>
+      </section>
+      <details id="faults-panel" class="controller-details">
+        <summary>Faults <span id="fault-count"></span></summary>
+        <div class="fault-row"><strong>ARM</strong><output id="arm-fault" aria-live="polite"></output><button id="arm-clear" title="Clear ARM fault"><i data-lucide="rotate-ccw"></i> Clear ARM</button></div>
+        <div class="fault-row"><strong>BASE</strong><output id="base-fault" aria-live="polite"></output><button id="base-clear" title="Clear BASE fault"><i data-lucide="rotate-ccw"></i> Clear BASE</button></div>
+        <p id="fault-clear-status" role="status"></p>
+        <p id="fault-history"></p>
+      </details>
+      <details class="acceleration-settings" id="speed-settings-panel">
+        <summary>Speed</summary>
+      <div class="speed-settings" aria-label="Independent speed settings">
+        <div class="speed-control"><span>Base speed</span><output>200 mm/s &middot; 0.60 rad/s</output></div>
+        <label class="speed-control" for="z-speed"
+          ><i data-lucide="gauge"></i><span>Z axes speed</span
+          ><input id="z-speed" type="range" min="5" max="160" step="5" value="65" /><input id="z-speed-value" class="parameter-number" type="number" min="5" max="160" step="5" value="65" required aria-label="z-speed value" /><small id="z-speed-units" class="speed-units">65 mm/s</small></label
+        >
+        <label class="speed-control" for="x-speed"
+          ><i data-lucide="gauge"></i><span>X axis speed</span
+          ><input id="x-speed" type="range" min="5" max="200" step="5" value="70" /><input id="x-speed-value" class="parameter-number" type="number" min="5" max="200" step="5" value="70" required aria-label="x-speed value" /><small id="x-speed-units" class="speed-units">70 mm/s</small></label
+        >
+        <label class="speed-control" for="gripper-speed"
+          ><i data-lucide="gauge"></i><span>Gripper speed</span
+          ><input id="gripper-speed" type="range" min="5" max="50" step="5" value="50" /><input id="gripper-speed-value" class="parameter-number" type="number" min="5" max="50" step="5" value="50" required aria-label="gripper-speed value" /><small id="gripper-speed-units" class="speed-units">50 %/s</small></label>
+      </div>
+      </details>
+      <details class="acceleration-settings" id="acceleration-settings-panel">
+        <summary>Accelerations</summary>
+        <div class="acceleration-grid">
+          <div><strong>Base</strong> <output>1000 mm/s&sup2;</output></div>
+          <label for="rotation-accel"><strong>Platform rotation</strong><input id="rotation-accel-value" class="parameter-number" type="number" min="0.05" max="2" step="0.05" value="2" required aria-label="Platform rotation acceleration" /><span>rad/s&sup2;</span><input id="rotation-accel" type="range" min="0.05" max="2" step="0.05" value="2" required /></label>
+          <label for="z-accel"><strong>Z / ZL / ZR</strong><input id="z-accel-value" class="parameter-number" type="number" min="5" max="100" step="5" value="100" required aria-label="z-accel value" /><span>mm/s&sup2;</span><input id="z-accel" type="range" min="5" max="100" step="5" value="100" required /></label>
+          <label for="x-accel"><strong>X rail</strong><input id="x-accel-value" class="parameter-number" type="number" min="10" max="500" step="10" value="200" required aria-label="x-accel value" /><span>mm/s&sup2;</span><input id="x-accel" type="range" min="10" max="500" step="10" value="200" required /></label>
+          <label for="gripper-accel"><strong>Gripper</strong><input id="gripper-accel-value" class="parameter-number" type="number" min="1" max="200" step="1" value="100" required aria-label="gripper-accel value" /><span>%/s&sup2;</span><input id="gripper-accel" type="range" min="1" max="200" step="1" value="100" required /></label>
+        </div>
+      </details>
+      <div id="notice" role="status" hidden></div>
+      <div class="monitor-layout">
+        <section class="camera-section" aria-labelledby="cameras-heading">
+          <div class="section-heading">
+            <h2 id="cameras-heading">
+              <i data-lucide="video"></i> IP cameras
+              <span class="count">4</span>
+            </h2>
+            <span id="camera-summary">0 / 4 configured</span>
+          </div>
+          <div class="camera-grid" id="camera-grid"></div>
+        </section>
+        <section class="robot-section" aria-labelledby="robot-heading">
+          <div class="section-heading">
+            <h2 id="robot-heading"><i data-lucide="scan-line"></i> Robot</h2>
+            <span class="sim-label" id="data-source">Awaiting data</span>
+          </div>
+          <div class="side-view">
+            <div class="view-caption">
+              <h3>Side view</h3>
+              <span>ZL / ZR / sliding X rail / gripper</span>
+            </div>
+            <svg
+              id="side-schematic"
+              viewBox="0 0 560 300"
+              role="img"
+              aria-label="Independent ZL and ZR supports with a sliding X rail and fixed end gripper"
+            >
+              <defs>
+                <pattern
+                  id="side-grid"
+                  width="20"
+                  height="20"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M20 0H0V20"
+                    fill="none"
+                    stroke="#e8edee"
+                    stroke-width="1"
+                  />
+                </pattern>
+                <marker
+                  id="axis-arrow"
+                  markerWidth="7"
+                  markerHeight="7"
+                  refX="5"
+                  refY="3"
+                  orient="auto-start-reverse"
+                >
+                  <path
+                    d="M0 0L6 3L0 6"
+                    fill="none"
+                    stroke="#148273"
+                    stroke-width="1.3"
+                  />
+                </marker>
+              </defs>
+              <rect width="560" height="300" fill="url(#side-grid)" />
+              <path d="M55 264H505" stroke="#c4d0d2" stroke-width="2" />
+              <g id="side-platform" transform="translate(122.5 123.5) scale(0.5)">
+              <rect
+                x="100"
+                y="247"
+                width="278"
+                height="20"
+                rx="4"
+                fill="#d9e2e3"
+                stroke="#657a7d"
+                stroke-width="2"
+              />
+              <g fill="#334b50">
+                <circle cx="130" cy="273" r="13" />
+                <circle cx="346" cy="273" r="13" />
+              </g>
+              <g fill="#d5e0e0">
+                <circle cx="130" cy="273" r="5" />
+                <circle cx="346" cy="273" r="5" />
+              </g>
+              </g>
+              <rect
+                x="210"
+                y="48"
+                width="20"
+                height="199"
+                rx="3"
+                fill="#e0e8e9"
+                stroke="#8ba0a4"
+              />
+              <rect
+                x="260"
+                y="48"
+                width="20"
+                height="199"
+                rx="3"
+                fill="#e0e8e9"
+                stroke="#8ba0a4"
+              />
+              <path
+                d="M220 56V240M270 56V240"
+                stroke="#9baeb0"
+                stroke-width="3"
+                stroke-dasharray="3 4"
+              />
+              <path
+                d="M180 237V55M305 237V55"
+                stroke="#148273"
+                marker-end="url(#axis-arrow)"
+                marker-start="url(#axis-arrow)"
+              />
+              <text x="220" y="35" text-anchor="middle" class="axis-name">
+                ZL
+              </text>
+              <text x="270" y="35" text-anchor="middle" class="axis-name">
+                ZR
+              </text>
+              <g id="rail-angle" transform="translate(245 169)">
+                <g id="x-rail" transform="translate(27 0)">
+                  <rect
+                    id="x-rail-body"
+                    x="-190"
+                    y="-8"
+                    width="290"
+                    height="16"
+                    rx="2"
+                    fill="#c5d9d6"
+                    stroke="#187e73"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M-175 -27H85"
+                    stroke="#148273"
+                    marker-end="url(#axis-arrow)"
+                    marker-start="url(#axis-arrow)"
+                  />
+                  <text x="-30" y="-35" text-anchor="middle" class="axis-name">
+                    X
+                  </text>
+                  <g id="gripper-mount" transform="translate(100 0)">
+                    <rect
+                      x="-8"
+                      y="-14"
+                      width="16"
+                      height="28"
+                      rx="3"
+                      fill="#f2b84e"
+                      stroke="#a87520"
+                    />
+                    <path d="M0 14V27" stroke="#526669" stroke-width="5" />
+                    <path
+                      id="gripper-fingers"
+                      d="M-15 27V48H-7M15 27V48H7"
+                      fill="none"
+                      stroke="#526669"
+                      stroke-width="5"
+                      stroke-linejoin="round"
+                    />
+                    <text x="26" y="38" class="diagram-note">Gripper</text>
+                  </g>
+                </g>
+              </g>
+              <g id="left-joint" transform="translate(220 169)">
+                <rect
+                  x="-12"
+                  y="-13"
+                  width="24"
+                  height="26"
+                  rx="3"
+                  fill="#187e73"
+                />
+                <path d="M-12 0H12" stroke="#e4f3ef" stroke-width="3" />
+                <circle r="3" fill="#f2b84e" />
+              </g>
+              <g id="right-joint" transform="translate(270 169)">
+                <rect
+                  x="-12"
+                  y="-13"
+                  width="24"
+                  height="26"
+                  rx="3"
+                  fill="#187e73"
+                />
+                <path d="M-12 0H12" stroke="#e4f3ef" stroke-width="3" />
+                <circle r="3" fill="#f2b84e" />
+              </g>
+            </svg>
+            <div class="axis-readouts">
+              <div>
+                <span>Z left</span
+                ><strong
+                  ><output id="z-left">--</output> <small>mm</small></strong
+                >
+              </div>
+              <div>
+                <span>Z right</span
+                ><strong
+                  ><output id="z-right">--</output> <small>mm</small></strong
+                >
+              </div>
+              <div>
+                <span>X</span
+                ><strong
+                  ><output id="x-position">--</output> <small>mm</small></strong
+                >
+              </div>
+            </div>
+          </div>
+          <div class="base-view">
+            <div class="view-caption">
+              <h3>Top view</h3>
+              <span>4 mecanum wheels</span>
+            </div>
+            <div class="base-content">
+              <svg
+                id="base-schematic"
+                viewBox="0 0 280 220"
+                role="img"
+                aria-label="Platform with four omnidirectional wheels"
+              >
+                <defs>
+                  <pattern
+                    id="rollers-left"
+                    width="12"
+                    height="12"
+                    patternUnits="userSpaceOnUse"
+                    patternTransform="rotate(35)"
+                  >
+                    <rect width="5" height="12" fill="#a3b7b8" />
+                  </pattern>
+                  <pattern
+                    id="rollers-right"
+                    width="12"
+                    height="12"
+                    patternUnits="userSpaceOnUse"
+                    patternTransform="rotate(-35)"
+                  >
+                    <rect width="5" height="12" fill="#a3b7b8" />
+                  </pattern>
+                </defs>
+                <path
+                  d="M140 14V32M136 19L140 14L144 19"
+                  fill="none"
+                  stroke="#657a7d"
+                  stroke-width="2"
+                />
+                <text x="156" y="26" class="diagram-note">FRONT</text>
+                <path
+                  d="M140 37V205M35 118H246"
+                  stroke="#d6e1e2"
+                  stroke-dasharray="4 5"
+                />
+                <rect
+                  x="84"
+                  y="52"
+                  width="112"
+                  height="136"
+                  rx="10"
+                  fill="#e4ecec"
+                  stroke="#718a8d"
+                  stroke-width="2"
+                />
+                <rect
+                  x="105"
+                  y="77"
+                  width="70"
+                  height="77"
+                  rx="4"
+                  fill="#f7fafa"
+                  stroke="#b6c9cb"
+                />
+                <path
+                  d="M114 95H166M114 105H166M114 115H166"
+                  stroke="#d3dfdf"
+                  stroke-width="4"
+                />
+                <g class="wheel" id="wheel-fl">
+                  <rect
+                    x="63"
+                    y="58"
+                    width="26"
+                    height="48"
+                    rx="6"
+                    fill="#334b50"
+                  />
+                  <rect
+                    x="66"
+                    y="61"
+                    width="20"
+                    height="42"
+                    rx="4"
+                    fill="url(#rollers-left)"
+                  />
+                </g>
+                <g class="wheel" id="wheel-fr">
+                  <rect
+                    x="191"
+                    y="58"
+                    width="26"
+                    height="48"
+                    rx="6"
+                    fill="#334b50"
+                  />
+                  <rect
+                    x="194"
+                    y="61"
+                    width="20"
+                    height="42"
+                    rx="4"
+                    fill="url(#rollers-right)"
+                  />
+                </g>
+                <g class="wheel" id="wheel-rl">
+                  <rect
+                    x="63"
+                    y="139"
+                    width="26"
+                    height="48"
+                    rx="6"
+                    fill="#334b50"
+                  />
+                  <rect
+                    x="66"
+                    y="142"
+                    width="20"
+                    height="42"
+                    rx="4"
+                    fill="url(#rollers-right)"
+                  />
+                </g>
+                <g class="wheel" id="wheel-rr">
+                  <rect
+                    x="191"
+                    y="139"
+                    width="26"
+                    height="48"
+                    rx="6"
+                    fill="#334b50"
+                  />
+                  <rect
+                    x="194"
+                    y="142"
+                    width="20"
+                    height="42"
+                    rx="4"
+                    fill="url(#rollers-left)"
+                  />
+                </g>
+                <g class="diagram-note">
+                  <text x="34" y="86">FL</text>
+                  <text x="227" y="86">FR</text>
+                  <text x="34" y="168">RL</text>
+                  <text x="227" y="168">RR</text>
+                </g>
+                <path
+                  id="motion-arrow"
+                  d="M140 120L140 85M132 94L140 85L148 94"
+                  fill="none"
+                  stroke="#138576"
+                  stroke-width="5"
+                  stroke-linecap="round"
+                  visibility="hidden"
+                />
+                <path
+                  id="rotation-arrow"
+                  d="M116 120A26 26 0 1 1 159 140L162 129M159 140L171 139"
+                  fill="none"
+                  stroke="#c18b29"
+                  stroke-width="4"
+                  visibility="hidden"
+                />
+              </svg>
+              <dl class="velocity-readouts">
+                <div>
+                  <dt>Forward / reverse</dt>
+                  <dd><output id="vx">0.00</output> <small>m/s</small></dd>
+                </div>
+                <div>
+                  <dt>Left / right</dt>
+                  <dd><output id="vy">0.00</output> <small>m/s</small></dd>
+                </div>
+                <div>
+                  <dt>Rotation</dt>
+                  <dd><output id="wz">0.00</output> <small>rad/s</small></dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+      <section class="controls-section" aria-labelledby="controls-heading">
+        <div class="section-heading">
+          <h2 id="controls-heading">
+            <i data-lucide="keyboard"></i> Keyboard and manual control
+          </h2>
+          <span>Hold to move &middot; Release to stop</span>
+        </div>
+        <div class="control-groups">
+          <div class="control-group base-controls">
+            <div class="group-label">
+              <h3>Platform</h3>
+              <p id="platform-control-status" role="status"></p>
+              <p>
+                W / S forward and reverse &middot; A / D strafe<br />Q / E
+                rotate left and right
+              </p>
+            </div>
+            <div class="direction-pad">
+              <button
+                data-key="KeyQ"
+                title="Rotate left (Q)"
+                aria-label="Rotate left"
+              >
+                <i data-lucide="rotate-ccw"></i><kbd>Q</kbd></button
+              ><button data-key="KeyW" title="Forward (W)" aria-label="Forward">
+                <i data-lucide="arrow-up"></i><kbd>W</kbd></button
+              ><button
+                data-key="KeyE"
+                title="Rotate right (E)"
+                aria-label="Rotate right"
+              >
+                <i data-lucide="rotate-cw"></i><kbd>E</kbd>
+              </button>
+              <button
+                data-key="KeyA"
+                title="Strafe left (A)"
+                aria-label="Strafe left"
+              >
+                <i data-lucide="arrow-left"></i><kbd>A</kbd></button
+              ><button data-key="KeyS" title="Reverse (S)" aria-label="Reverse">
+                <i data-lucide="arrow-down"></i><kbd>S</kbd></button
+              ><button
+                data-key="KeyD"
+                title="Strafe right (D)"
+                aria-label="Strafe right"
+              >
+                <i data-lucide="arrow-right"></i><kbd>D</kbd>
+              </button>
+            </div>
+          </div>
+          <div class="control-group arm-controls">
+            <div class="group-label">
+              <h3>Vertical axes</h3>
+              <p>Z both &middot; ZL / ZR independent</p>
+            </div>
+            <div class="paired-controls">
+              <div>
+                <span>Z</span
+                ><button
+                  data-key="KeyR"
+                  title="Raise both Z axes (R)"
+                  aria-label="Raise both Z axes"
+                >
+                  <i data-lucide="arrow-up"></i><kbd>R</kbd></button
+                ><button
+                  data-key="KeyF"
+                  title="Lower both Z axes (F)"
+                  aria-label="Lower both Z axes"
+                >
+                  <i data-lucide="arrow-down"></i><kbd>F</kbd>
+                </button>
+              </div>
+              <div>
+                <span>ZL</span
+                ><button
+                  data-key="KeyU"
+                  title="Raise Z left (U)"
+                  aria-label="Raise Z left"
+                >
+                  <i data-lucide="arrow-up"></i><kbd>U</kbd></button
+                ><button
+                  data-key="KeyJ"
+                  title="Lower Z left (J)"
+                  aria-label="Lower Z left"
+                >
+                  <i data-lucide="arrow-down"></i><kbd>J</kbd>
+                </button>
+              </div>
+              <div>
+                <span>ZR</span
+                ><button
+                  data-key="KeyI"
+                  title="Raise Z right (I)"
+                  aria-label="Raise Z right"
+                >
+                  <i data-lucide="arrow-up"></i><kbd>I</kbd></button
+                ><button
+                  data-key="KeyK"
+                  title="Lower Z right (K)"
+                  aria-label="Lower Z right"
+                >
+                  <i data-lucide="arrow-down"></i><kbd>K</kbd>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="control-group x-controls">
+            <div class="group-label">
+              <h3>X rail</h3>
+              <p>T extend &middot; G retract</p>
+            </div>
+            <div class="paired-controls">
+              <div>
+                <span>X</span
+                ><button
+                  data-key="KeyT"
+                  title="Extend X rail (T)"
+                  aria-label="Extend X rail"
+                >
+                  <i data-lucide="arrow-right-from-line"></i
+                  ><kbd>T</kbd></button
+                ><button
+                  data-key="KeyG"
+                  title="Retract X rail (G)"
+                  aria-label="Retract X rail"
+                >
+                  <i data-lucide="arrow-left-to-line"></i><kbd>G</kbd>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="control-group gripper-controls">
+            <div class="group-label">
+              <h3>Gripper</h3>
+              <p>O open &middot; P close</p>
+            </div>
+            <div class="gripper-buttons">
+              <button
+                data-key="KeyO"
+                title="Open gripper (O)"
+                aria-label="Open gripper"
+              >
+                <i data-lucide="expand"></i><kbd>O</kbd></button
+              ><button
+                data-key="KeyP"
+                title="Close gripper (P)"
+                aria-label="Close gripper"
+              >
+                <i data-lucide="shrink"></i><kbd>P</kbd>
+              </button>
+            </div>
+            <span class="stop-hint"
+              ><kbd>Space</kbd> / <kbd>Esc</kbd> STOP all axes</span
+            >
+          </div>
+        </div>
+      </section>
+        </section>
+      </div>
+      <footer>
+        <span><span class="dot amber"></span> <span id="stm32-status">STM32: not connected</span></span
+        ><span id="watchdog">Command timeout: 600 ms</span
+        ><button id="api-footer" class="text-button">
+          PC application API <i data-lucide="arrow-up-right"></i>
+        </button>
+      </footer>
+    </main>
+    <dialog id="service-dialog">
+      <form id="service-form">
+        <h2>Unlock service mode</h2>
+        <p>Platform and arm share manual control. Platform speed and acceleration follow the sliders.</p>
+        <p>Bypass homing, limit switches, position limits and ZL/ZR difference protection. Limit-related faults may be cleared on entry. Driver faults and watchdogs remain active.</p>
+        <p>Firmware limits: Z 190 mm/s, X 500 mm/s. Service mode remains selected until manually switched off. Connection loss stops motion.</p>
+        <label><input id="service-confirm" type="checkbox" required /> I confirm manual supervision and an accessible physical emergency stop.</label>
+        <label>Service password<input id="service-password" type="password" minlength="12" maxlength="256" autocomplete="off" required /></label>
+        <div class="service-toolbar"><button type="button" data-close="service-dialog">Cancel</button><button type="submit"><i data-lucide="unlock"></i> Unlock</button></div>
+      </form>
+    </dialog>
+    <dialog id="home-dialog">
+      <h2>Home ZL</h2>
+      <p id="home-warning"></p>
+      <label id="home-tilt" hidden>Gripper end of X
+        <select id="home-tilt-select">
+          <option value="">Select inclination</option>
+          <option value="level_down">Tilted down</option>
+          <option value="level_up">Tilted up</option>
+        </select>
+      </label>
+      <div class="dialog-actions">
+        <button data-close="home-dialog">Cancel</button>
+        <button id="home-confirm">Confirm and home ZL</button>
+      </div>
+    </dialog>
+    <dialog id="camera-dialog">
+      <form id="camera-form">
+        <div class="dialog-heading">
+          <h2 id="camera-dialog-title">Camera settings</h2>
+          <button
+            type="button"
+            class="icon-button"
+            data-close="camera-dialog"
+            title="Close"
+            aria-label="Close"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <label>Name<input id="camera-name" maxlength="32" required /></label
+        ><label
+          >Source<select id="camera-mode"><option value="rtsp">Revotech RTSP</option><option value="mjpeg">Direct MJPEG</option></select></label>
+        <div id="camera-rtsp">
+          <label>Camera IP<input id="camera-host" placeholder="192.168.100.21" autocomplete="off" /></label>
+          <label>RTSP port<input id="camera-port" type="number" min="1" max="65535" value="554" /></label>
+          <label>Stream<select id="camera-stream"><option value="2">Substream (stream2)</option><option value="1">Main stream (stream1)</option></select></label>
+          <label>Username<input id="camera-user" value="admin" autocomplete="off" /></label>
+          <label>Password<input id="camera-password" type="password" autocomplete="new-password" /></label>
+        </div>
+        <label id="camera-mjpeg">MJPEG stream URL<input
+            id="camera-url"
+            type="url"
+            placeholder="http://192.168.1.50/video.mjpg"
+        /></label>
+        <p id="camera-error" class="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="camera-clear" class="secondary-button">
+            Disconnect</button
+          ><button type="submit" class="primary-button">Save</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="api-dialog">
+      <div class="dialog-heading">
+        <h2>PC application</h2>
+        <button
+          type="button"
+          class="icon-button"
+          data-close="api-dialog"
+          title="Close"
+          aria-label="Close"
+        >
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <dl class="api-details">
+        <dt>Control WebSocket</dt>
+        <dd><code id="ws-address"></code></dd>
+        <dt>HTTP state snapshot</dt>
+        <dd><code>/api/robot</code></dd>
+        <dt>Protocol</dt>
+        <dd>JSON v1 &middot; One control owner</dd>
+        <dt>Command rate</dt>
+        <dd>10 Hz &middot; Timeout 600 ms</dd>
+      </dl>
+      <a
+        href="/static/control-api.md"
+        target="_blank"
+        rel="noopener"
+        class="doc-link"
+        >Protocol documentation <i data-lucide="external-link"></i
+      ></a>
+    </dialog>
+  </body>
+</html>

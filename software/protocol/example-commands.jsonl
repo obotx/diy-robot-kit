@@ -1,0 +1,8 @@
+{"type":"heartbeat","seq":1,"timestamp_ms":0}
+{"type":"enable","seq":2,"enabled":true}
+{"type":"base_velocity","seq":3,"vx_mps":0.1,"vy_mps":0.0,"wz_radps":0.0}
+{"type":"arm_jog","seq":4,"axis":"z","velocity_mps":0.02}
+{"type":"gripper","seq":5,"command":"open"}
+{"type":"stop","seq":6,"reason":"operator"}
+{"type":"enable","seq":7,"enabled":false}
+

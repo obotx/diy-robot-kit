@@ -1,0 +1,11 @@
+*.SLDASM binary
+*.sldasm binary
+*.SLDDRW binary
+*.slddrw binary
+*.SLDPRT binary
+*.sldprt binary
+*.STEP binary
+*.step binary
+*.STP binary
+*.stp binary
+software/rpi/packages/*.zip binary

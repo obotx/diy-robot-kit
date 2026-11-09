@@ -1,0 +1,6 @@
+{
+  "arm_only": true,
+  "arm": {"port": "COM3", "device_id": "REPLACE_WITH_REAL_ARM_ID"},
+  "commissioned": false,
+  "max_z_difference_mm": 100.0
+}
