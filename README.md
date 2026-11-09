@@ -7,6 +7,15 @@ This repository contains the bill of materials, electrical diagram, firmware
 and Raspberry Pi control software required to reproduce and commission the
 robot. The customer's external control software is not included.
 
+<p align="center">
+  <img src="media/obotx-robot.jpg" alt="ObotX mobile manipulator" width="48%">
+  <img src="media/obotx-robot-extended.jpg" alt="ObotX with the arm extended" width="48%">
+</p>
+
+<p align="center">
+  <a href="media/obotx-demo.mp4"><strong>Watch the ObotX demonstration video</strong></a>
+</p>
+
 ## Build and commissioning order
 
 1. Purchase the parts from the [main BOM](hardware/bom/bom.csv) and
